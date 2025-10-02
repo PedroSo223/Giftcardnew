@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Premium</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 380px;
+            height: 660px;
+            overflow: hidden;
+            border-radius: 15px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            border: 3px solid #fff;
+        }
+        
+        #game-canvas {
+            background: linear-gradient(to bottom, #87CEEB, #98D8F0);
+            width: 100%;
+            height: 100%;
+        }
+        
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.85);
+            z-index: 10;
+            text-align: center;
+            padding: 30px;
+            backdrop-filter: blur(5px);
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #FFD700;
+            text-shadow: 3px 3px 0 #FF6B00, 6px 6px 0 rgba(0,0,0,0.2);
+            letter-spacing: 2px;
+        }
+        
+        h2 {
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            color: #FFD700;
+            text-shadow: 2px 2px 0 #FF6B00;
+        }
+        
+        p {
+            margin-bottom: 25px;
+            color: #fff;
+            max-width: 90%;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            background: linear-gradient(145deg, #FF6B00, #FFD700);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+            padding: 15px 40px;
+            cursor: pointer;
+            margin-top: 25px;
+            box-shadow: 0 8px 15px rgba(255, 107, 0, 0.4);
+            transition: all 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px rgba(255, 107, 0, 0.6);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        #score {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 5;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid #FFD700;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .instructions {
+            margin-top: 25px;
+            font-size: 1rem;
+            color: #ccc;
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+        
+        .best-score {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            font-size: 1.2rem;
+            color: #FFD700;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid #FFD700;
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        #sound-toggle {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #FFD700;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            color: #FFD700;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+        
+        #sound-toggle:hover {
+            background: rgba(255,215,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="score">0</div>
+        <div class="best-score">Melhor: <span id="best-score">0</span></div>
+        <button id="sound-toggle">🔊</button>
+        
+        <div id="start-screen" class="screen">
+            <h1 class="floating">FLAPPY BIRD</h1>
+            <p>Desvie dos canos e alcance a maior pontuação possível!</p>
+            <button id="start-btn" class="btn pulse">🎮 JOGAR AGORA</button>
+            <p class="instructions">Clique, toque na tela ou pressione ESPAÇO para pular</p>
+        </div>
+        
+        <div id="game-over-screen" class="screen hidden">
+            <h2>FIM DE JOGO</h2>
+            <p>Sua pontuação: <span id="final-score" style="color:#FFD700; font-size:1.5rem;">0</span></p>
+            <p>Melhor pontuação: <span id="final-best" style="color:#FFD700; font-size:1.5rem;">0</span></p>
+            <button id="restart-btn" class="btn pulse">🔄 JOGAR NOVAMENTE</button>
+        </div>
+    </div>
+
+    <script>
+        // Configurações do jogo
+        const config = {
+            gravity: 0.6,
+            jumpForce: -12,
+            speed: 3.5,
+            obstacleGap: 200,
+            obstacleWidth: 70,
+            obstacleFrequency: 110,
+            groundHeight: 60
+        };
+
+        // Elementos do DOM
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const scoreElement = document.getElementById('score');
+        const finalScoreElement = document.getElementById('final-score');
+        const bestScoreElement = document.getElementById('best-score');
+        const finalBestElement = document.getElementById('final-best');
+        const soundToggle = document.getElementById('sound-toggle');
+
+        // Configuração do canvas
+        canvas.width = 380;
+        canvas.height = 660;
+
+        // Variáveis do jogo
+        let gameState = {
+            isPlaying: false,
+            score: 0,
+            frames: 0,
+            bestScore: parseInt(localStorage.getItem('flappyBestScore')) || 0
+        };
+
+        // Sistema de áudio
+        let backgroundMusic = null;
+        let soundEnabled = true;
+
+        // Inicializar música de fundo (toca continuamente)
+        function initBackgroundMusic() {
+            if (backgroundMusic) return;
+            
+            backgroundMusic = new Audio('audio.mp3');
+            backgroundMusic.loop = true;
+            backgroundMusic.volume = 0.4;
+            
+            // Tentar tocar a música (pode precisar de interação do usuário)
+            document.addEventListener('click', function startMusic() {
+                if (soundEnabled && backgroundMusic.paused) {
+                    backgroundMusic.play().catch(e => console.log('Erro ao tocar música:', e));
+                }
+                document.removeEventListener('click', startMusic);
+            });
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            soundToggle.innerHTML = soundEnabled ? '🔊' : '🔇';
+            
+            if (backgroundMusic) {
+                if (soundEnabled) {
+                    backgroundMusic.volume = 0.4;
+                } else {
+                    backgroundMusic.volume = 0;
+                }
+            }
+        }
+
+        // Atualizar melhor pontuação
+        function updateBestScore() {
+            if (gameState.score > gameState.bestScore) {
+                gameState.bestScore = gameState.score;
+                localStorage.setItem('flappyBestScore', gameState.bestScore);
+            }
+            bestScoreElement.textContent = gameState.bestScore;
+            finalBestElement.textContent = gameState.bestScore;
+        }
+
+        // Carregar imagem do personagem
+        const playerImage = new Image();
+        playerImage.src = 'imagem1.png';
+
+        // Personagem
+        const player = {
+            x: 100,
+            y: canvas.height / 2,
+            width: 55,
+            height: 55,
+            velocity: 0,
+            rotation: 0,
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width/2, this.y + this.height/2);
+                ctx.rotate(this.rotation * Math.PI/180);
+                
+                if (playerImage.complete) {
+                    ctx.drawImage(playerImage, -this.width/2, -this.height/2, this.width, this.height);
+                } else {
+                    // Fallback
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(-this.width/2 + 12, -this.height/2 + 12, 10, 10);
+                    ctx.fillRect(-this.width/2 + 33, -this.height/2 + 12, 10, 10);
+                    
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(-this.width/2 + 14, -this.height/2 + 14, 6, 6);
+                    ctx.fillRect(-this.width/2 + 35, -this.height/2 + 14, 6, 6);
+                    
+                    ctx.fillStyle = 'orange';
+                    ctx.fillRect(-this.width/2 + 22, -this.height/2 + 38, 12, 6);
+                }
+                
+                ctx.restore();
+            },
+            update() {
+                this.velocity += config.gravity;
+                this.y += this.velocity;
+                
+                // Rotação baseada na velocidade
+                this.rotation = Math.min(this.velocity * 3, 25);
+                
+                // Limitar movimento
+                if (this.y <= 0) {
+                    this.y = 0;
+                    this.velocity = 0;
+                }
+                
+                if (this.y + this.height >= canvas.height - config.groundHeight) {
+                    this.y = canvas.height - config.groundHeight - this.height;
+                    this.velocity = 0;
+                    if (gameState.isPlaying) gameOver();
+                }
+            },
+            jump() {
+                this.velocity = config.jumpForce;
+                this.rotation = -20;
+            },
+            reset() {
+                this.y = canvas.height / 2;
+                this.velocity = 0;
+                this.rotation = 0;
+            }
+        };
+
+        // Obstáculos
+        let obstacles = [];
+
+        class Obstacle {
+            constructor() {
+                this.x = canvas.width;
+                this.width = config.obstacleWidth;
+                this.gap = config.obstacleGap;
+                this.topHeight = Math.random() * (canvas.height - config.groundHeight - this.gap - 150) + 80;
+                this.bottomY = this.topHeight + this.gap;
+                this.passed = false;
+                this.color = `hsl(${140 + Math.random() * 20}, 80%, 40%)`;
+            }
+            
+            draw() {
+                // Cano superior
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, 0, this.width, this.topHeight);
+                
+                // Detalhes no cano
+                ctx.fillStyle = '#2E7D32';
+                ctx.fillRect(this.x - 8, this.topHeight - 25, this.width + 16, 25);
+                
+                // Cano inferior
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.bottomY, this.width, canvas.height - this.bottomY - config.groundHeight);
+                
+                ctx.fillStyle = '#2E7D32';
+                ctx.fillRect(this.x - 8, this.bottomY, this.width + 16, 25);
+                
+                // Padrão nos canos
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                for (let i = 15; i < this.topHeight - 10; i += 25) {
+                    ctx.fillRect(this.x + 10, i, this.width - 20, 8);
+                }
+                
+                for (let i = this.bottomY + 25; i < canvas.height - config.groundHeight - 10; i += 25) {
+                    ctx.fillRect(this.x + 10, i, this.width - 20, 8);
+                }
+            }
+            
+            update() {
+                this.x -= config.speed;
+                
+                if (!this.passed && this.x + this.width < player.x) {
+                    this.passed = true;
+                    gameState.score++;
+                    scoreElement.textContent = gameState.score;
+                }
+                
+                if (
+                    player.x < this.x + this.width &&
+                    player.x + player.width > this.x &&
+                    (
+                        player.y < this.topHeight ||
+                        player.y + player.height > this.bottomY
+                    )
+                ) {
+                    gameOver();
+                }
+            }
+        }
+
+        // Chão
+        const ground = {
+            draw() {
+                // Grama
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(0, canvas.height - config.groundHeight, canvas.width, config.groundHeight);
+                
+                // Terra
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(0, canvas.height - config.groundHeight + 15, canvas.width, config.groundHeight - 15);
+                
+                // Detalhes
+                ctx.fillStyle = '#A0522D';
+                for (let i = 0; i < canvas.width; i += 35) {
+                    ctx.fillRect(i, canvas.height - config.groundHeight + 25, 25, 8);
+                }
+            }
+        };
+
+        // Nuvens de fundo
+        let clouds = [];
+        for (let i = 0; i < 6; i++) {
+            clouds.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * 250,
+                width: 70 + Math.random() * 50,
+                speed: Math.random() * 0.7 + 0.3
+            });
+        }
+
+        // Montanhas no fundo
+        let mountains = [];
+        for (let i = 0; i < 4; i++) {
+            mountains.push({
+                x: i * 120,
+                height: 80 + Math.random() * 60,
+                speed: 0.1 + Math.random() * 0.1
+            });
+        }
+
+        // Funções do jogo
+        function startGame() {
+            gameState.isPlaying = true;
+            gameState.score = 0;
+            gameState.frames = 0;
+            obstacles = [];
+            player.reset();
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            scoreElement.textContent = '0';
+            
+            // Iniciar música se ainda não estiver tocando
+            if (soundEnabled && backgroundMusic && backgroundMusic.paused) {
+                backgroundMusic.play().catch(e => console.log('Erro ao tocar música:', e));
+            }
+            
+            loop();
+        }
+
+        function gameOver() {
+            gameState.isPlaying = false;
+            finalScoreElement.textContent = gameState.score;
+            updateBestScore();
+            gameOverScreen.classList.remove('hidden');
+            
+            // A música continua tocando (não para)
+        }
+
+        function drawBackground() {
+            // Céu gradiente
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#98D8F0');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Montanhas
+            ctx.fillStyle = 'rgba(100, 120, 150, 0.3)';
+            mountains.forEach(mountain => {
+                ctx.beginPath();
+                ctx.moveTo(mountain.x, canvas.height - config.groundHeight);
+                ctx.lineTo(mountain.x + 60, canvas.height - config.groundHeight - mountain.height);
+                ctx.lineTo(mountain.x + 120, canvas.height - config.groundHeight);
+                ctx.fill();
+                
+                mountain.x -= mountain.speed;
+                if (mountain.x < -120) {
+                    mountain.x = canvas.width;
+                }
+            });
+            
+            // Nuvens
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            clouds.forEach(cloud => {
+                ctx.beginPath();
+                ctx.arc(cloud.x, cloud.y, cloud.width/3, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.width/3, cloud.y - 15, cloud.width/4, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.width/2, cloud.y, cloud.width/3, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.width/3, cloud.y + 10, cloud.width/5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                cloud.x -= cloud.speed;
+                if (cloud.x < -cloud.width) {
+                    cloud.x = canvas.width + cloud.width;
+                    cloud.y = Math.random() * 250;
+                }
+            });
+        }
+
+        function loop() {
+            if (!gameState.isPlaying) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            
+            obstacles.forEach((obstacle, index) => {
+                obstacle.update();
+                obstacle.draw();
+                
+                if (obstacle.x + obstacle.width < 0) {
+                    obstacles.splice(index, 1);
+                }
+            });
+            
+            if (gameState.frames % config.obstacleFrequency === 0) {
+                obstacles.push(new Obstacle());
+            }
+            
+            player.update();
+            player.draw();
+            ground.draw();
+            
+            gameState.frames++;
+            requestAnimationFrame(loop);
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startGame, { passive: true });
+        restartBtn.addEventListener('click', startGame, { passive: true });
+        soundToggle.addEventListener('click', toggleSound);
+
+        canvas.addEventListener('click', () => {
+            if (gameState.isPlaying) {
+                player.jump();
+            }
+        }, { passive: true });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameState.isPlaying) {
+                e.preventDefault();
+                player.jump();
+            }
+        }, { passive: false });
+
+        // Inicializar elementos
+        function initGame() {
+            // Inicializar música
+            initBackgroundMusic();
+            
+            // Atualizar melhor pontuação
+            updateBestScore();
+            
+            // Inicializar nuvens e montanhas
+            clouds = [];
+            for (let i = 0; i < 6; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * 250,
+                    width: 70 + Math.random() * 50,
+                    speed: Math.random() * 0.7 + 0.3
+                });
+            }
+            
+            mountains = [];
+            for (let i = 0; i < 4; i++) {
+                mountains.push({
+                    x: i * 120,
+                    height: 80 + Math.random() * 60,
+                    speed: 0.1 + Math.random() * 0.1
+                });
+            }
+        }
+
+        // Iniciar o jogo
+        initGame();
+    </script>
+</body>
+</html>
